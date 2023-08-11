@@ -194,7 +194,7 @@ export const zapperState = loadable(
     if (provider == null) {
       return null
     }
-    
+
     try {
       const ethereumConfig = configuration.makeConfig(
         1,
@@ -213,7 +213,7 @@ export const zapperState = loadable(
       const universe = await Universe.createWithConfig(
         provider,
         ethereumConfig,
-        async (_uni) => {
+        async (universe) => {
           const { loadEthereumTokenList } = await import('@reserve-protocol/token-zapper/configuration/setupEthereumTokenList');
           const { setupCompoundLike } = await import('@reserve-protocol/token-zapper/protocols/compoundV2');
           const { loadRTokens } = await import('@reserve-protocol/token-zapper/protocols/reserve');
@@ -224,17 +224,14 @@ export const zapperState = loadable(
           const { setupWrappedGasToken } = await import('@reserve-protocol/token-zapper/protocols/erc20gas');
           const { initCurveOnEthereum } = await import('@reserve-protocol/token-zapper/protocols/curve/mainnet');
 
-          // TODO: fix this.. not sure why types are not matching
-          type Uni = Parameters<typeof loadEthereumTokenList>[0]
-          const universe = _uni
 
-          await loadEthereumTokenList(universe as any as Uni)
+          await loadEthereumTokenList(universe)
 
           const chainLinkETH = Address.from(GAS_TOKEN_ADDRESS)
           const chainLinkBTC = Address.from(CHAINLINK_BTC_TOKEN_ADDRESS)
 
           setupChainLinkRegistry(
-            universe as any as Uni,
+            universe,
             PROTOCOL_CONFIGS.chainLinkRegistry,
             [
               [universe.commonTokens.WBTC, chainLinkBTC],
@@ -243,7 +240,7 @@ export const zapperState = loadable(
             ]
           );
           setupWrappedGasToken(
-            universe as any as Uni
+            universe
           )
 
           // Set up compound
@@ -252,7 +249,7 @@ export const zapperState = loadable(
             PROTOCOL_CONFIGS.compound.markets,
             wrappedToUnderlyingMapping
           )
-          await setupCompoundLike(universe as any as Uni, {
+          await setupCompoundLike(universe, {
             cEth: await universe.getToken(
               Address.from(PROTOCOL_CONFIGS.compound.cEther)
             ),
@@ -268,7 +265,7 @@ export const zapperState = loadable(
             wrappedToUnderlyingMapping
           )
 
-          await setupCompoundLike(universe as any as Uni, {
+          await setupCompoundLike(universe, {
             comptroller: Address.from(PROTOCOL_CONFIGS.fluxFinance.comptroller),
           }, fTokens)
 
@@ -279,27 +276,27 @@ export const zapperState = loadable(
             wrappedToUnderlyingMapping
           );
           await Promise.all(saTokens.map(({ underlying, wrappedToken }) => setupSAToken(
-            universe as any as Uni,
+            universe,
             wrappedToken,
             underlying,
           )))
 
           // Set up RETH
           await setupRETH(
-            universe as any as Uni,
+            universe,
             PROTOCOL_CONFIGS.rocketPool.reth,
             PROTOCOL_CONFIGS.rocketPool.router,
           )
 
           // Set up Lido
           await setupLido(
-            universe as any as Uni,
+            universe,
             PROTOCOL_CONFIGS.lido.steth,
             PROTOCOL_CONFIGS.lido.wsteth,
           )
 
           // Set up RTokens defined in the config
-          await loadRTokens(universe as any)
+          await loadRTokens(universe)
 
           try {
             await initCurveOnEthereum(universe as any, PROTOCOL_CONFIGS.convex.booster)
